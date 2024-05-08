@@ -3,11 +3,11 @@ import express, { Application, Request, Response } from "express"
 import 'dotenv/config'
 
 
-const app: Application = express()
-app.use(express.json())
+const app: Application = express();
+app.use(express.json());
 
-app.get("/oloraboca", (req: Request, res: Response) => {
-  res.send("putito*");
+app.get("/test", (req: Request, res: Response) => {
+  res.send("WORKING*");
 });
 
 const {
@@ -18,7 +18,6 @@ const {
 } = process.env;
 
 app.post("/webhook", async (req: Request, res: Response) => {
-  // console.log("Incoming webhook message:", JSON.stringify(req.body, null, 2));
 
   const message = req.body.entry?.[0]?.changes[0]?.value?.messages?.[0];
 
@@ -36,8 +35,8 @@ app.post("/webhook", async (req: Request, res: Response) => {
           "MIDDLEWARE": "acces-middleware"
         }
       })
-      const numberCel = message.from
-      const indiceAEliminar = 2
+      const numberCel = message.from;
+      const indiceAEliminar = 2;
       const newNumberCel = numberCel.slice(0, indiceAEliminar) + numberCel.slice(indiceAEliminar + 1);
       console.log("SIN", newNumberCel)
 
@@ -53,15 +52,8 @@ app.post("/webhook", async (req: Request, res: Response) => {
           to: newNumberCel.toString(),
           type: "text",
           text: {
-            // preview_url: "",
             body: response.data.toString(),
           }
-          // template: {
-          //   name: "hello_world",
-          //   language: {
-          //     code: "en_US"
-          //   }
-          // }
         },
       });
 
@@ -80,10 +72,10 @@ app.post("/webhook", async (req: Request, res: Response) => {
       });
     }
     res.sendStatus(200);
-    res.end()
+    res.end();
   }
-  res.end()
-  return
+  res.end();
+  return;
 });
 
 // accepts GET requests at the /webhook endpoint. You need this URL to setup webhook initially.
@@ -113,5 +105,3 @@ Checkout README.md to start.</pre>`);
 app.listen(PORT || "5000", async () => {
   console.log(`server running on ${PORT}`);
 });
-
-export default app
