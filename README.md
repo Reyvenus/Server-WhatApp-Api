@@ -5,6 +5,6 @@ for that call.**
 **In the package there is an unused dependency -->ngrok, it is optional, but it is used to put your local server online,
 see the documentation -->https://ngrok.com/**
 
-***note: avoid using the ngrok sfk, because it doesn't have code lines to take the server off line. 
+***note: avoid using the ngrok sdk, because it doesn't have code lines to take the server off line. 
 I recommend using chocolatey.com installation, read ngrok documentation.***
 
