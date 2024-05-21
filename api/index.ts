@@ -1,10 +1,16 @@
-import axios from "axios"
 import express, { Application, Request, Response } from "express"
 import 'dotenv/config'
+import { getUrlMediaAudio } from "./media_audio/getUrlAudioMedia";
+import { quitNumber9 } from "../helper/quit9";
+import { audioTrasncription } from "./media_audio/trasncription/audioTrasncription";
+import { getAudioMedia } from "./media_audio/getAudioMedia";
+import { finishChatIA, type MessageBody, type MessageChat } from "./finish_chat_IA/finishChatIA";
+import { controllerWhatsApp } from "./controllerWhatsApp/controllerWhatsApp";
 
 
 const app: Application = express();
 app.use(express.json());
+
 
 app.get("/test", (req: Request, res: Response) => {
   res.send("WORKING*");
@@ -12,70 +18,59 @@ app.get("/test", (req: Request, res: Response) => {
 
 const {
   WEBHOOK_VERIFY_TOKEN,
-  GRAPH_API_TOKEN, PORT,
-  BUSINESS_PHONE_NUMBER_ID,
-  URL_API_OPENAI_STREAM
+  GRAPH_API_TOKEN,
+  PORT,
+  URL_API_OPENAI
 } = process.env;
 
 app.post("/webhook", async (req: Request, res: Response) => {
 
-  const message = req.body.entry?.[0]?.changes[0]?.value?.messages?.[0];
+  const message: MessageBody = req.body.entry?.[0]?.changes[0]?.value?.messages?.[0];
 
-  if (message && message.text && message.text.body) {
-    const body = { message: message.text.body };
+  const business_phone_number_id: string = req.body.entry?.[0].changes?.[0].value?.metadata?.phone_number_id;
 
-    if (message?.type === "text") {
-      const business_phone_number_id = req.body.entry?.[0].changes?.[0].value?.metadata?.phone_number_id;
+  if (message && message?.type === "audio" && message?.audio && message.audio?.id) {
+    const audioID = message.audio.id;
+    const dataMedia = await getUrlMediaAudio(audioID);//obtengo objeto audio
+    const audio = await getAudioMedia(dataMedia.url);
+    const trasncription = await audioTrasncription(audio);
+    const body: MessageChat = { message: trasncription };
+    const respIA: string = await finishChatIA(`${URL_API_OPENAI}`, body);
 
-      const response = await axios(`${URL_API_OPENAI_STREAM}`, {
-        method: "POST",
-        data: JSON.stringify(body),
-        headers: {
-          "Content-Type": "application/json",
-          "MIDDLEWARE": "acces-middleware"
-        }
-      })
-      const numberCel = message.from;
-      const indiceAEliminar = 2;
-      const newNumberCel = numberCel.slice(0, indiceAEliminar) + numberCel.slice(indiceAEliminar + 1);
-      console.log("SIN", newNumberCel)
+    const newNumberCel = quitNumber9(message.from);
 
-      await axios({
-        method: "POST",
-        url: `https://graph.facebook.com/v19.0/${business_phone_number_id}/messages`,
-        headers: {
-          Authorization: `Bearer ${GRAPH_API_TOKEN}`,
-        },
-        data: {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: newNumberCel.toString(),
-          type: "text",
-          text: {
-            body: response.data.toString(),
-          }
-        },
-      });
+    if (respIA) {
+      await controllerWhatsApp(
+        `${GRAPH_API_TOKEN}`,
+        business_phone_number_id,
+        newNumberCel,
+        respIA,
+        message
+      );
+      res.status(200).end();
+    };
+    res.end;
+  };
 
-      // mark incoming message as read
-      await axios({
-        method: "POST",
-        url: `https://graph.facebook.com/v19.0/${business_phone_number_id}/messages`,
-        headers: {
-          Authorization: `Bearer ${GRAPH_API_TOKEN}`,
-        },
-        data: {
-          messaging_product: "whatsapp",
-          status: "read",
-          message_id: message.id,
-        },
-      });
-    }
-    res.sendStatus(200);
-    res.end();
-  }
+  if (message && message?.type === "text" && message?.text && message.text?.body) {
+    const body = { message: message.text.body } as any;
+    const respIA: string = await finishChatIA(`${URL_API_OPENAI}`, body);
+    const newNumberCel = quitNumber9(message.from);
+
+
+    if (respIA) {
+      await controllerWhatsApp(
+        `${GRAPH_API_TOKEN}`,
+        business_phone_number_id,
+        newNumberCel,
+        respIA,
+        message
+      );
+      res.status(200).end();
+    };
+    res.end;
+  };
   res.end();
-  return;
 });
 
 // accepts GET requests at the /webhook endpoint. You need this URL to setup webhook initially.
