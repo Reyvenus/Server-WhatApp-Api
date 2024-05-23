@@ -1,11 +1,12 @@
 import express, { Application, Request, Response } from "express"
 import 'dotenv/config'
-import { getUrlMediaAudio } from "./media_audio/getUrlAudioMedia";
+import { type DataMedia, getUrlMediaAudio } from "./media_audio/getUrlAudioMedia";
 import { quitNumber9 } from "../helper/quit9";
 import { audioTrasncription } from "./media_audio/trasncription/audioTrasncription";
 import { getAudioMedia } from "./media_audio/getAudioMedia";
 import { finishChatIA, type MessageBody, type MessageChat } from "./finish_chat_IA/finishChatIA";
 import { controllerWhatsApp } from "./controllerWhatsApp/controllerWhatsApp";
+import { s3_AudioUp } from "../aws_s3/s3_audioUp";
 
 
 const app: Application = express();
@@ -26,49 +27,60 @@ const {
 app.post("/webhook", async (req: Request, res: Response) => {
 
   const message: MessageBody = req.body.entry?.[0]?.changes[0]?.value?.messages?.[0];
+  console.log("Message", message)
 
   const business_phone_number_id: string = req.body.entry?.[0].changes?.[0].value?.metadata?.phone_number_id;
 
   if (message && message?.type === "audio" && message?.audio && message.audio?.id) {
-    const audioID = message.audio.id;
-    const dataMedia = await getUrlMediaAudio(audioID);//obtengo objeto audio
-    const audio = await getAudioMedia(dataMedia.url);
-    const trasncription = await audioTrasncription(audio);
-    const body: MessageChat = { message: trasncription };
-    const respIA: string = await finishChatIA(`${URL_API_OPENAI}`, body);
+    const phoneUser = quitNumber9(message?.from);
 
-    const newNumberCel = quitNumber9(message.from);
+    const audioID: string = message.audio.id;
+    const dataMedia: DataMedia = await getUrlMediaAudio(audioID);//obtengo objeto audio
+    const audio = await getAudioMedia(dataMedia.url);
+
+
+    await s3_AudioUp(audio, audioID, phoneUser);
+
+    const bodyAudio = { audioID, phoneUser };
+
+    const trasncription = await audioTrasncription(bodyAudio);
+    const body: MessageChat = { message: trasncription };
+
+    const respIA: string = await finishChatIA(`${URL_API_OPENAI}`, body);
 
     if (respIA) {
       await controllerWhatsApp(
         `${GRAPH_API_TOKEN}`,
         business_phone_number_id,
-        newNumberCel,
+        phoneUser,
         respIA,
         message
       );
       res.status(200).end();
-    };
-    res.end;
+    }
+    else
+      res.end();
   };
 
   if (message && message?.type === "text" && message?.text && message.text?.body) {
+    const phoneUser = quitNumber9(message?.from);
+
     const body = { message: message.text.body } as any;
     const respIA: string = await finishChatIA(`${URL_API_OPENAI}`, body);
-    const newNumberCel = quitNumber9(message.from);
-
+    console.log(phoneUser)
 
     if (respIA) {
       await controllerWhatsApp(
         `${GRAPH_API_TOKEN}`,
         business_phone_number_id,
-        newNumberCel,
+        phoneUser,
         respIA,
         message
       );
       res.status(200).end();
-    };
-    res.end;
+    }
+    else
+      res.end();
   };
   res.end();
 });

@@ -11,7 +11,6 @@ export const getAudioMedia = async (url: string) => {
         responseType: "stream"
       });
 
-      console.log("typo", typeof response.data)
     return response.data
 
   } catch (error: any) {

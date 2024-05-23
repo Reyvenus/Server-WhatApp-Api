@@ -1,6 +1,17 @@
 import axios from "axios"
 
 
+export type DataMedia = {
+  url:               string;
+  mime_type:         string;
+  sha256:            string;
+  file_size:         number;
+  id:                string;
+  messaging_product: string;
+}
+
+
+
 export const getUrlMediaAudio = async (MEDIA_ID: string) => {
   try {
     const response = await axios(`https://graph.facebook.com/v19.0/${MEDIA_ID}`, {
@@ -10,7 +21,7 @@ export const getUrlMediaAudio = async (MEDIA_ID: string) => {
       }
     });
 
-    return response.data
+    return response.data as DataMedia
 
   } catch (error: any) {
     return error.message;

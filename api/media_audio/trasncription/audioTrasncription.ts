@@ -1,15 +1,17 @@
 import axios from "axios"
 
 
-export const audioTrasncription = async (datos: any) => {
+export const audioTrasncription = async (body: any) => {
   try {
-    const response = await axios.post(`${process.env.URL_API_OPENAI_TRANSCRIPTION}`, datos,
+    const response = await axios(`http://localhost:8000/api/atranscription`,
       {
-        // method: "POST",
+        method: "POST",
         headers: {
-          "Content-Type": "application/octet-stream",
+          "Content-Type": "application/json",
+          // "Content-Type": "application/octet-stream",
           "MIDDLEWARE": "acces-middleware"
         },
+        data: body
       });
 
     return response.data;
