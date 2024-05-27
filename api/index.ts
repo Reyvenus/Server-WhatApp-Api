@@ -1,12 +1,13 @@
 import express, { Application, Request, Response } from "express"
 import 'dotenv/config'
-import { type DataMedia, getUrlMediaAudio } from "./media_audio/getUrlAudioMedia";
+import { type DataMedia, getUrlMedia } from "./media_audio/getUrlMedia";
 import { quitNumber9 } from "../helper/quit9";
 import { audioTrasncription } from "./media_audio/trasncription/audioTrasncription";
-import { getAudioMedia } from "./media_audio/getAudioMedia";
+import { getMedia } from "./media_audio/getMedia";
 import { finishChatIA, type MessageBody, type MessageChat } from "./finish_chat_IA/finishChatIA";
 import { controllerWhatsApp } from "./controllerWhatsApp/controllerWhatsApp";
-import { s3_AudioUp } from "../aws_s3/s3_audioUp";
+import { s3_AudioUp } from "../aws_s3/audio/s3_audioUp";
+import { s3_ImageUp } from "../aws_s3/image/s3_imageUp";
 
 
 const app: Application = express();
@@ -31,15 +32,33 @@ app.post("/webhook", async (req: Request, res: Response) => {
 
   const business_phone_number_id: string = req.body.entry?.[0].changes?.[0].value?.metadata?.phone_number_id;
 
+  if (message && message?.type === "image" && message?.image && message.image?.id) {
+    const phoneUser = quitNumber9(message?.from);
+
+    const imageID: string = message.image.id;
+    const dataMedia: DataMedia = await getUrlMedia(imageID);//obtengo objeto image
+    const image = await getMedia(dataMedia.url);
+
+    await s3_ImageUp(image, imageID, phoneUser, message.type)
+
+    await controllerWhatsApp(
+      `${GRAPH_API_TOKEN}`,
+      business_phone_number_id,
+      phoneUser,
+      "Pronto actualizaremos éste servicio",
+      message
+    );
+    res.status(200).end();
+  }
+
   if (message && message?.type === "audio" && message?.audio && message.audio?.id) {
     const phoneUser = quitNumber9(message?.from);
 
     const audioID: string = message.audio.id;
-    const dataMedia: DataMedia = await getUrlMediaAudio(audioID);//obtengo objeto audio
-    const audio = await getAudioMedia(dataMedia.url);
+    const dataMedia: DataMedia = await getUrlMedia(audioID);//obtengo objeto audio
+    const audio = await getMedia(dataMedia.url);
 
-
-    await s3_AudioUp(audio, audioID, phoneUser);
+    await s3_AudioUp(audio, audioID, phoneUser, message.type);
 
     const bodyAudio = { audioID, phoneUser };
 

@@ -12,9 +12,10 @@ export type MessageBody = {
   from: string;
   id: string;
   timestamp: string;
-  type: "audio" | "text";
+  type: "audio" | "text" | "image";
   text?: Text;
-  audio?: Audio
+  audio?: Audio;
+  image?:Image
 };
 
 export type Text = {
@@ -26,6 +27,12 @@ export type Audio = {
   sha256: string,
   id: string,
   voice: boolean
+};
+
+export type Image = {
+  mime_type: string,
+  sha256: string,
+  id: string,
 };
 
 

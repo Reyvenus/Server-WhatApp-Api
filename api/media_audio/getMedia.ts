@@ -1,7 +1,7 @@
 import axios from "axios"
 
 
-export const getAudioMedia = async (url: string) => {
+export const getMedia = async (url: string) => {
   try {
     const response = await axios(url,
       {

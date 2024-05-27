@@ -8,11 +8,9 @@ export type DataMedia = {
   file_size:         number;
   id:                string;
   messaging_product: string;
-}
+};
 
-
-
-export const getUrlMediaAudio = async (MEDIA_ID: string) => {
+export const getUrlMedia = async (MEDIA_ID: string) => {
   try {
     const response = await axios(`https://graph.facebook.com/v19.0/${MEDIA_ID}`, {
       headers: {
