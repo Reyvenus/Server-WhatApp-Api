@@ -6,6 +6,7 @@
   "scripts": {
     "start": "tsc & node ./dist",
     "dev": "nodemon ./api/index.ts",
+    "del": "nodemon ./aws_s3/emptyBucket.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
